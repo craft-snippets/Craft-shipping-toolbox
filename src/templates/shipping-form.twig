@@ -1,0 +1,580 @@
+{% import '_includes/forms.twig' as forms %}
+{% set shipping = details %}
+
+<div class="shipping__container" data-shipping-form="{{ details.plugin.handle }}">
+
+    <div data-interface>
+        <div class="shipping__header">
+            {{ details.plugin.getPluginLabel() }}
+        </div>
+
+        {# errors #}
+        {% include 'shipping-toolbox/settings/settings-errors' with {
+            plugin: details.plugin,
+            header: 'Before you use this shipping integration, fix these settings errors:'|t('shipping-toolbox'),
+            showLink: true,
+        } %}
+
+        <div class="shipping__box-wrapper" data-interface-inside>
+
+            <a href="{{ url('settings/plugins/' ~ details.plugin.handle) }}" target="_blank" type="button" class="settings icon settings-link"></a>
+
+            <div class="shipping__image">
+                {{ svg(details.plugin.getSvgLogoMarkup(), sanitize=true, namespace=true) }}
+            </div>
+            <div class="shipping__box">
+
+                {# parcels exist #}
+                {% if details.getHasParcels() %}
+                    <div class="shipping__ready">
+
+                        <strong>{{ 'Parcels'|t('shipping-toolbox') }}</strong>:
+                        {# list of parcels #}
+                        <ul class="shipping__parcels">
+                            {% for parcel in details.parcels %}
+                                <li>
+                                    {% if parcel.getTrackingUrl() %}
+                                        <a href="{{ parcel.getTrackingUrl() }}" target="_blank">{{ parcel.getTitle() }}</a>
+                                    {% else %}
+                                        {{ parcel.getTitle() }}
+                                    {% endif %}
+                                    {% if parcel.getStatusText() %} - {{ 'status'|t('shipping-toolbox') }}: <strong>{{ parcel.getStatusText() }}</strong>{% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+
+                        {% if shipping.isCod() %}
+                            <hr>
+                            {{ 'Cash on delivery amount:'|t('shipping-toolbox') }} <strong>{{ shipping.getCodAmountNumber() }}</strong> {{ shipping.getCodAmountCurrency() }}
+                        {% endif %}
+
+                        <hr>
+                        {# buttons #}
+                        {% if shipping.getPdfAsset() %}
+                            {% set pdfUrl = actionUrl('shipping-toolbox/shipment/print-labels', {
+                                orderIds: [shipping.order.id],
+                            }) %}
+                            <a target="_blank" href="{{ pdfUrl }}" class="btn" data-label-trigger>
+                                {{ 'Get parcel labels'|t('shipping-toolbox') }}
+                            </a>
+                        {% else %}
+                            <button class="btn btn-disabled" >
+                                {{ 'Parcel label does not exist'|t('shipping-toolbox') }}
+                            </button>
+                        {% endif %}
+                        <button
+                                class="btn"
+                                data-toggle-details
+                                data-details-text-show="{{ 'Show details'|t('shipping-toolbox') }}"
+                                data-details-text-hide="{{ 'Hide details'|t('shipping-toolbox') }}"
+                        >
+                            {{ 'Show details'|t('shipping-toolbox') }}
+                        </button>
+                        <button class="btn" data-update-status>
+                            {{ 'Update parcels status'|t('shipping-toolbox') }}
+                        </button>
+                        <button class="btn" data-remove {{ not shipping.canRemoveParcels ? 'data-cannot-remove' }}>
+                            {{ 'Remove parcels'|t('shipping-toolbox') }}
+                        </button>
+                        <br>
+
+                        <div data-details hidden>
+                            <br>
+                            <ul>
+                                {% for property in shipping.getShippingDetails() %}
+                                    <li>
+                                        {{ property.label }}:
+                                        <strong>{{ property.value }}</strong>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+
+                        <hr>
+                        <div>
+                            {{ 'Remember that editing order settings after parcels were already created, will not influence parcels settings.'|t('shipping-toolbox') }}
+                        </div>
+
+                    </div>
+
+                {% endif %}
+
+                {# add parcels #}
+                {% if not shipping.getHasParcels() %}
+                    <div class="" data-send hidden>
+
+                        {#                        {{ 'Creating parcels of the type:'|t('shipping-toolbox') }} <strong>{{ shipping.getDefaultParcelTyPeLabel() }}</strong>#}
+                        {#                        <hr>#}
+
+                        {% if shipping.canUseCod() %}
+                            {{ 'Cash on delivery is enabled for this shipping method. Amount that will be used:'|t('shipping-toolbox') }} <strong>{{ shipping.getCodBeforeRequest() }} {{ shipping.getCodCurrencyBeforeRequest() }}</strong>
+                            <hr>
+                        {% endif %}
+
+                        <div data-settings>
+                            {# dont add name attribute to avoid sending it with default order edit request #}
+
+                            {# parcel shops #}
+                            {% if details.plugin.supportsParcelShops() %}
+                                <div class="field shipping__functionality-box">
+                                    <div data-parcel-shop-switch style="">
+                                    {{ forms.checkboxField({
+                                        label: 'Use parcel shop service'|t('shipping-toolbox'),
+                                        checked: details.hasParcelShopCode(),
+                                    }) }}
+                                    </div>
+                                    <div data-parcel-shop-content style="margin-top: 0.5rem; display: none;">
+                                        {{ forms.textField({
+                                            label: 'Parcel shop code'|t('shipping-toolbox'),
+                                            value: details.getParcelShopCode(),
+                                            id: 'parcelShopCode',
+                                            type: 'text',
+                                            errors: details.hasRequiredParcelShopParams() ? [] : [details.plugin.getParcelShopsParametersErrors()],
+                                        }) }}
+                                    </div>
+                                </div>
+
+                            {% endif %}
+
+                            <div class="shipping__parcel-count-wrapper">
+                            {% if details.plugin.useInputNumberOfParcels() %}
+                                {{ forms.textField({
+                                    label: 'Number of parcels'|t('shipping-toolbox'),
+                                    value: 1,
+                                    id: 'parcelCount',
+                                    type: 'number',
+                                    min: 1,
+                                }) }}
+                            {% endif %}
+                            </div>
+
+                            {% if details.plugin.useInputSenderAddress() %}
+                                {{ forms.selectField({
+                                    label: 'Sender address'|t('shipping-toolbox'),
+                                    instructions: 'Select the location which address will be used as the sender address for the parcels.'|t('shipping-toolbox'),
+                                    id: 'senderLocationId',
+                                    options: locationOptions,
+                                    value: defaultLocationId,
+                                }) }}
+                            {% endif %}
+
+                            {% if details.plugin.useInputParcelInfo() %}
+                                {{ forms.textField({
+                                    label: 'Parcel info printed on label'|t('shipping-toolbox'),
+                                    instructions: 'Optional'|t('shipping-toolbox'),
+                                    id: 'parcelDescription',
+                                }) }}
+                            {% endif %}
+
+                            {% if details.plugin.useInputPickupDate() %}
+                                {{ forms.dateField({
+                                    label: 'Pickup date'|t('shipping-toolbox'),
+                                    instructions: 'Default: current day'|t('shipping-toolbox'),
+                                    id: 'pickupDate',
+                                }) }}
+                            {% endif %}
+
+                        </div>
+
+                        <div class="field">
+                            <button class="btn" data-cancel>
+                                {{ 'Cancel'|t('shipping-toolbox') }}
+                            </button>
+                            <button class="btn submit" data-submit>
+                                {{ 'Submit'|t('shipping-toolbox') }}
+                            </button>
+                        </div>
+
+                    </div>
+
+                    {# initial #}
+                    <div class="shipping__initial" data-initial>
+
+                        <button class="btn submit" data-show>
+                            {{ 'Create parcels'|t('shipping-toolbox') }}
+                        </button>
+
+                    </div>
+
+                {% endif %}
+
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    {% js %}
+    (function(){
+    let container = $('[data-shipping-form="{{ details.plugin.handle }}"]');
+
+    // parcel shop
+    const parcelShopCheckbox = container.find("[data-parcel-shop-switch] input[type='checkbox']");
+    const parcelShopContent = container.find("[data-parcel-shop-content]");
+    if(parcelShopCheckbox.length && parcelShopContent.length){
+        function toggleContent() {
+            parcelShopContent[0].style.display = parcelShopCheckbox[0].checked ? "block" : "none";
+
+            if(parcelShopCheckbox[0].checked){
+                container.find('[data-parcel-shop-content] input').removeAttr("disabled");
+            }else{
+                container.find('[data-parcel-shop-content] input').attr("disabled", "disabled");
+            }
+
+        }
+        toggleContent();
+        parcelShopCheckbox[0].addEventListener("change", toggleContent);
+    }
+
+    // switch text on hide/show details button
+    container.find('[data-toggle-details]').on('click', function(e){
+        e.preventDefault();
+        container.find('[data-details]').slideToggle();
+        if($(this).text().trim() == $(this).data('details-text-show')){
+            $(this).text($(this).data('details-text-hide'));
+        }else{
+            $(this).text($(this).data('details-text-show'));
+        }
+    });
+
+    // show create parcel form
+    container.find('[data-show]').on('click', function(e){
+        e.preventDefault();
+        container.find('[data-initial]').hide();
+        container.find('[data-send]').show();
+    });
+
+    // hide create parcel form
+    container.find('[data-cancel]').on('click', function(e){
+        e.preventDefault();
+        container.find('[data-initial]').show();
+        container.find('[data-send]').hide();
+    });
+
+    // update status
+    container.find('[data-update-status]').on('click', function(e){
+        e.preventDefault();
+
+        let sendController = '{{actionUrl('shipping-toolbox/shipment/update-parcels-status')}}';
+        let formData = new FormData();
+
+        formData.append('orderId', {{ details.order.id }});
+        formData.append('pluginHandle', '{{ details.plugin.handle }}');
+        formData.append('{{craft.app.config.general.csrfTokenName}}', '{{ craft.app.request.csrfToken }}');
+
+        const button = $(this);
+        $.ajax({
+            cache: false,
+            contentType: false,
+            processData: false,
+            method: "POST",
+            url: sendController,
+            data: formData,
+            dataType: "json",
+            beforeSend: function( ) {
+                button.addClass('btn-is-loading');
+            },
+        }).always(function() {
+
+        }).done(function( data ) {
+            if(data['success'] ?? false){
+                console.log(data['success'])
+                {% if reloadOnRequest %}
+                location.reload();
+                {% endif %}
+            }else{
+                Craft.cp.displayError(data['error']);
+                button.removeClass('btn-is-loading');
+            }
+        }).fail(function( data ) {
+            button.removeClass('btn-is-loading');
+            Craft.cp.displayError('Controller error');
+        });
+    });
+
+
+    // remove shipping data
+
+    container.find('[data-remove]').on('click', function(e){
+        e.preventDefault();
+
+        if($(this).is('[data-cannot-remove]')){
+            Craft.cp.displayError('{{ 'Cannot remove parcels.'|t('shipping-toolbox')|raw  }}');
+            return;
+        }
+
+        if(!confirm('{{ 'Are you sure you want to remove the parcels from the Order?'|t('shipping-toolbox') }}')){
+            return;
+        }
+
+        let sendController = '{{actionUrl('shipping-toolbox/shipment/remove-shipment-details')}}';
+        let formData = new FormData();
+
+        formData.append('orderId', {{ details.order.id }});
+        formData.append('pluginHandle', '{{ details.plugin.handle }}');
+        formData.append('{{craft.app.config.general.csrfTokenName}}', '{{ craft.app.request.csrfToken }}');
+
+        const button = $(this);
+        $.ajax({
+            cache: false,
+            contentType: false,
+            processData: false,
+            method: "POST",
+            url: sendController,
+            data: formData,
+            dataType: "json",
+            beforeSend: function( ) {
+                button.addClass('btn-is-loading');
+                $('[data-interface]').addClass('shipping-interface-blocked');
+                {#$('[data-remove]').text('{{ 'Removing...'|t('shipping-toolbox') }}');#}
+            },
+        }).always(function() {
+            $('[data-interface]').removeClass('shipping-interface-blocked');
+            button.removeClass('btn-is-loading');
+            {#$('[data-remove]').text('{{ 'Remove parcels'|t('shipping-toolbox') }}');#}
+        }).done(function( data ) {
+            if(data['success'] ?? false){
+                {% if reloadOnRequest %}
+                location.reload();
+                {% endif %}
+            }else{
+                Craft.cp.displayError(data['error']);
+
+                if(data['errorType'] == 'api'){
+
+                    if(confirm(data['error'] + ". {{ 'Remove order data from database without the API call?'|t('shipping-toolbox') }}")){
+
+                        let sendController = '{{actionUrl('shipping-toolbox/shipment/remove-shipment-details-from-database')}}';
+                        let formData = new FormData();
+
+                        formData.append('orderId', {{ details.order.id }});
+                        formData.append('pluginHandle', '{{ details.plugin.handle }}');
+                        formData.append('{{craft.app.config.general.csrfTokenName}}', '{{ craft.app.request.csrfToken }}');
+
+                        $.ajax({
+                            cache: false,
+                            contentType: false,
+                            processData: false,
+                            method: "POST",
+                            url: sendController,
+                            data: formData,
+                            dataType: "json",
+                            beforeSend: function( ) {
+                                button.addClass('btn-is-loading');
+                                $('[data-interface]').addClass('shipping-interface-blocked');
+                            },
+                        }).always(function() {
+                            $('[data-interface]').removeClass('shipping-interface-blocked');
+                            button.removeClass('btn-is-loading');
+                        }).done(function( data ) {
+                            if(data['success'] ?? false){
+                                {% if reloadOnRequest %}
+                                location.reload();
+                                {% endif %}
+                            }else{
+                                Craft.cp.displayError(data['status']);
+                            }
+                        }).fail(function( data ) {
+                            Craft.cp.displayError('Controller error');
+                        });
+
+                    }
+
+                }
+
+            }
+        }).fail(function( data ) {
+            Craft.cp.displayError('Controller error');
+        });
+    });
+
+    // create shipment details
+    container.find('[data-submit]').on('click', function(e){
+        e.preventDefault();
+
+        let sendController = '{{actionUrl('shipping-toolbox/shipment/create-shipment-details')}}';
+        let formData = new FormData();
+
+        formData.append('orderId', {{ details.order.id }});
+        formData.append('pluginHandle', '{{ details.plugin.handle }}');
+        formData.append('{{craft.app.config.general.csrfTokenName}}', '{{ craft.app.request.csrfToken }}');
+
+        let requestSettings = {};
+
+        container.find('[data-settings] input, [data-settings] textarea, [data-settings] select').each(function(){
+            if($(this).attr('disabled') !== undefined){
+                return true;
+            }
+            let key = $(this).attr('id');
+            requestSettings[key] = $(this).val();
+        });
+        formData.append('requestSettings', JSON.stringify(requestSettings));
+
+        const button = $(this);
+        $.ajax({
+            cache: false,
+            contentType: false,
+            processData: false,
+            method: "POST",
+            url: sendController,
+            data: formData,
+            dataType: "json",
+            beforeSend: function( ) {
+                button.addClass('btn-is-loading');
+            },
+        }).always(function() {
+            button.removeClass('btn-is-loading');
+        }).done(function( data ) {
+            if(data['success'] ?? false){
+                {% if reloadOnRequest %}
+                location.reload();
+                {% endif %}
+            }else{
+                Craft.cp.displayError(data['error']);
+            }
+        }).fail(function( data ) {
+            Craft.cp.displayError('Controller error');
+        });
+
+    });
+
+    $('#order-edit-btn, #orderDetailsTab .btn-link-default').on('click', function(e){
+        container.find('[data-interface-inside]').addClass('shipping-interface-blocked-inside');
+    });
+
+    container.find('[data-interface]').on('click', function(e){
+        if($('[data-interface-inside]').hasClass('shipping-interface-blocked-inside')){
+            alert('{{ 'You need to finish editing the order, before using shipping interface.'|t('shipping-toolbox')  }}');
+        }
+    });
+    })();
+    {% endjs %}
+</script>
+
+<style>
+    {% css %}
+    .shipping-interface-blocked-inside{
+        pointer-events: none;
+        opacity: 0.5;
+    }
+    .shipping__container{
+        margin-top: 1.5rem;
+    }
+    .shipping__header{
+        font-weight: bold;
+        margin-bottom: 1rem;
+    }
+    .shipping__box{
+
+    }
+
+    .shipping__box-wrapper{
+        display: flex;
+        gap: 1rem;
+        background-color: #f3f7fc;
+        /*border: 1px solid #eee;*/
+        border-radius: 5px;
+        box-shadow: 0 0 0 1px #cdd8e4,0 2px 12px rgba(205,216,228,.5);
+        padding: 1rem;
+    }
+    .shipping__image svg{
+        width: 3.5rem;
+        height: auto;
+    }
+    .shipping__box{
+        flex-grow: 1;
+    }
+    .shipping__parcels{
+        list-style: square;
+        margin-left: 1rem;
+        margin-top: 0.7rem;
+    }
+    .shipping__initial{
+        height: 100%;
+        display: flex;
+        align-items: center;
+    }
+
+    [data-cannot-remove]{
+        opacity: 0.25;
+    }
+    .shipping-interface-blocked{
+        pointer-events: none;
+    }
+
+
+    .btn-is-loading:after {
+        position: absolute;
+        display: block;
+        height: 1rem;
+        width: 1rem;
+        margin-top: -.5rem;
+        margin-left: -.5rem;
+        border: 2px solid;
+        border-radius: 50%;
+        animation: btn-loading .5s infinite linear;
+        border-right-color: transparent;
+        border-top-color: transparent;
+        content: "";
+        left: 50%;
+        top: 50%;
+        z-index: 1;
+    }
+    .btn-is-loading.submit:after{
+        border-top-color: white;
+        border-left-color: white;
+    }
+    .btn-is-loading:not(.submit):after{
+        border-top-color: black;
+        border-left-color: black;
+    }
+    @keyframes btn-loading {
+        0% {
+            transform:rotate(0)
+        }
+        to {
+            transform:rotate(360deg)
+        }
+    }
+    .btn-is-loading, .btn-is-loading.submit {
+        position:relative;
+        pointer-events:none;
+        color:transparent !important;
+    }
+    .btn-disabled{
+        color: red;
+        pointer-events: none;
+    }
+    .shipping__parcel-count-wrapper input{
+        max-width: 8.5rem;
+    }
+
+    .shipping__functionality-box{
+        padding: 1rem;
+        border-radius: 5px;
+        box-shadow: 0 0 0 1px #cdd8e4,0 2px 12px rgba(205,216,228,.5);
+        max-width: 400px;
+    }
+
+    /*settings link*/
+    .shipping__box-wrapper{
+        position: relative;
+    }
+    .settings-link{
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        opacity: 0.5;
+        transition: 0.3s;
+
+        svg{
+            width: 0.9rem;
+            height: 0.9rem;
+        }
+    }
+    .settings-link:hover{
+        opacity: 1;
+    }
+    {% endcss %}
+</style>

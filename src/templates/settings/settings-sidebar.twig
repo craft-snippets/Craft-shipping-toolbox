@@ -1,0 +1,11 @@
+<nav>
+    <ul>
+        {% for item in links %}
+            <li>
+                <a href="{{item.url}}"{% if item.selected %} class="sel"{% endif %}>
+                    {{item.label}}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+</nav>

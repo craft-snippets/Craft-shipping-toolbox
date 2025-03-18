@@ -1,0 +1,34 @@
+{% import '_includes/forms.twig' as forms %}
+{% import 'shipping-toolbox/settings/macros' as m %}
+
+{{ hiddenInput('pluginHandle', 'shipping-toolbox') }}
+
+{% apply namespace('settings', withClasses=false) %}
+
+{# assett volume #}
+{{ m.settingsSelectField(settings, 'labelAssetVolumeId') }}
+
+{# phone number field #}
+{{ m.settingsSelectField(settings, 'phoneFieldId') }}
+
+{# default sender address #}
+{{ m.settingsSelectField(settings, 'defaultLocationId') }}
+
+{# pickup email #}
+{{ m.settingsSelectField(settings, 'pickupAddressEmailFieldId') }}
+
+{# delivered status #}
+{{ m.settingsSelectField(settings, 'deliveredOrderStatusId') }}
+
+{# parcel shop id #}
+{{ m.settingsSelectField(settings, 'parcelShopCodeFieldId') }}
+
+{# formatter #}
+{{ forms.lightswitch({
+    label: settings.attributeLabels.useAddressFormatter,
+    id: 'useAddressFormatter',
+    name: 'useAddressFormatter',
+    on: settings.useAddressFormatter,
+}) }}
+
+{% endapply %}

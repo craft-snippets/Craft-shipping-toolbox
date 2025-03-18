@@ -1,0 +1,63 @@
+{% if plugin.getSettingsErrors() %}
+    <div class="settings-errors__info-wrapper">
+
+        {% if header ?? null %}
+        <div class="settings-errors__info">
+            <span class="notification-icon settings-errors__info-icon" data-icon="alert" aria-label="error" role="img"></span>
+            <span class="settings-errors__info__header">
+                {{ header }}
+            </span>
+        </div>
+        {% endif %}
+
+        <ul class="settings-errors__info__list">
+            {% for error in plugin.getSettingsErrors() %}
+                <li class="settings-errors__info__single">
+                    {{ error }}
+                </li>
+            {% endfor %}
+        </ul>
+
+        {% if showLink ?? false %}
+        <br>
+        <div>
+            <a href="{{ details.plugin.getSettingsUrl() }}" class="btn" target="_blank">
+                {{ 'Plugin settings'|t('shipping-toolbox') }}
+            </a>
+        </div>
+        {% endif %}
+
+    </div>
+{% endif %}
+
+{% css %}
+.settings-errors__info-wrapper{
+    background-color: var(--gray-050);
+    border-radius: var(--large-border-radius);
+    box-shadow: 0 0 0 1px #cdd8e4,0 2px 12px rgba(205,216,228,.5);
+    box-sizing: border-box;
+    margin-bottom: var(--l);
+    padding: var(--l) var(--xl) var(--xl);
+}
+.settings-errors__info__header{
+    font-weight: bold;
+    position: relative;
+    top: 2px;
+}
+.settings-errors__info{
+    display: flex;
+    gap: 0.5rem;
+}
+.settings-errors__info__list{
+    margin-top: 1rem;
+    list-style: square;
+    margin-left: 1rem;
+}
+.settings-errors__info__single{
+    /*margin-top: 1rem*/
+}
+
+.settings-errors__info .settings-errors__info-icon{
+    color: var(--error-color);
+}
+{% endcss %}

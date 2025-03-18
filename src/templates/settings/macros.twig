@@ -1,0 +1,11 @@
+{% macro settingsSelectField(settings, key) %}
+    {% import '_includes/forms.twig' as forms %}
+    {{ forms.selectField({
+        label: settings.attributeLabels()[key],
+        instructions: settings.attributeInstructions()[key] ?? null,
+        name: key,
+        value: settings[key],
+        errors: settings.getErrors(key),
+        options: settings.attributeOptions()[key],
+    }) }}
+{% endmacro %}
