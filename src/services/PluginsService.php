@@ -879,7 +879,6 @@ class PluginsService extends Component
         if(is_null($shipmentInfo)){
             return [];
         }
-        $content2 = $shipmentInfo->getContents();
         $content = $shipmentInfo->getContents()->outputSavedData();
         return $content;
     }
@@ -899,6 +898,20 @@ class PluginsService extends Component
     public function shipmentInfoParamName($param, $pluginHandle)
     {
         return self::SHIPMENT_INFO_PREFIX . '[' . 'values' . ']' . '[' . $param . ']';
+    }
+
+    public function renderShipmentInfoWidget($order, $pluginHandle, $param)
+    {
+        $plugin = $this->getPluginByHandle($pluginHandle);
+        if(is_null($plugin) || is_null($plugin->getShipmentInfContentsClass())){
+            return null;
+        }
+        $html = (string)$plugin->getShipmentInfContentsClass()::render($order, $param);
+        if(is_null($html)){
+            return null;
+        }
+        $html = Template::raw($html);
+        return $html;
     }
 
 }

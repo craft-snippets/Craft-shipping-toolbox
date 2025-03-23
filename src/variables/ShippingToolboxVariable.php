@@ -24,4 +24,9 @@ class ShippingToolboxVariable
     {
         return ShippingToolbox::getInstance()->plugins->getOrderSavedShipmentProperty($order, $pluginHandle, $param);
     }
+
+    public function renderShipmentInfoWidget($order, $pluginHandle, $param)
+    {
+        return ShippingToolbox::getInstance()->plugins->renderShipmentInfoWidget($order, $pluginHandle, $param);
+    }
 }
