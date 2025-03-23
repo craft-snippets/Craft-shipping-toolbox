@@ -11,13 +11,22 @@ use craft\helpers\UrlHelper;
 use craft\web\CpScreenResponseBehavior;
 use craftsnippets\shippingtoolbox\elements\conditions\ShipmentInfoCondition;
 use craftsnippets\shippingtoolbox\elements\db\ShipmentInfoQuery;
+use craftsnippets\shippingtoolbox\ShippingToolbox;
+use yii\base\InvalidConfigException;
 use yii\web\Response;
+
+use craftsnippets\shippingtoolbox\records\ShipmentInfoRecord;
 
 /**
  * Shipment Info element type
  */
 class ShipmentInfo extends Element
 {
+
+    public $orderId;
+    public $pluginHandle;
+    public $propertiesJson;
+
     public static function displayName(): string
     {
         return Craft::t('shipping-toolbox', 'Shipment info');
@@ -50,7 +59,7 @@ class ShipmentInfo extends Element
 
     public static function hasTitles(): bool
     {
-        return true;
+        return false;
     }
 
     public static function hasUris(): bool
@@ -254,9 +263,48 @@ class ShipmentInfo extends Element
     public function afterSave(bool $isNew): void
     {
         if (!$this->propagating) {
-            // todo: update the `shipmentinfos` table
+            if (!$isNew) {
+                $record = ShipmentInfoRecord::findOne($this->id);
+                if (!$record) {
+                    throw new InvalidConfigException("Invalid Shipment info ID: $this->id");
+                }
+            } else {
+                $record = new ShipmentInfoRecord();
+                $record->id = (int)$this->id;
+            }
+
+            $record->orderId = $this->orderId;
+            $record->pluginHandle = $this->pluginHandle;
+            $record->propertiesJson = $this->propertiesJson;
+
+            $dirtyAttributes = array_keys($record->getDirtyAttributes());
+            $record->save(false);
+            $this->setDirtyAttributes($dirtyAttributes);
         }
 
         parent::afterSave($isNew);
     }
+
+    private $contentCache;
+
+    public function getContents()
+    {
+        if(!is_null($this->contentCache)){
+            return $this->contentCache;
+        }
+        $plugin = ShippingToolbox::getInstance()->plugins->getPluginByHandle($this->pluginHandle);
+        if(is_null($plugin)){
+            return;
+        }
+        $class = $plugin::getShipmentInfContentsClass();
+        if(is_null($class)){
+            return;
+        }
+        $obj = new $class([
+            'jsonData' => $this->propertiesJson,
+        ]);
+        $this->contentCache = $obj;
+        return $this->contentCache;
+    }
+
 }

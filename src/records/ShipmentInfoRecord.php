@@ -2,18 +2,16 @@
 
 namespace craftsnippets\shippingtoolbox\records;
 
-use Craft;
 use craft\db\ActiveRecord;
-use yii\db\ActiveQueryInterface;
 use craft\records\Element;
-
 use craftsnippets\shippingtoolbox\helpers\DbTables;
+use yii\db\ActiveQueryInterface;
 
-class ShipmentRecord extends ActiveRecord
+class ShipmentInfoRecord extends ActiveRecord
 {
     public static function tableName()
     {
-        return DbTables::SHIPMENTS;
+        return DbTables::SHIPMENT_INFO;
     }
     public function getElement(): ActiveQueryInterface
     {

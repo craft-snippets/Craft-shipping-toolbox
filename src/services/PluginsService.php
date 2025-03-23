@@ -24,6 +24,7 @@ use craftsnippets\shippingtoolbox\helpers\Common;
 use craftsnippets\shippingtoolbox\ShippingToolbox;
 use yii\base\Component;
 use craftsnippets\shippingtoolbox\elements\Shipment;
+use craftsnippets\shippingtoolbox\elements\ShipmentInfo;
 use craft\models\Volume;
 use craftsnippets\baseshippingplugin\ShippingPlugin;
 use yii\base\Event;
@@ -34,6 +35,7 @@ use craftsnippets\shippingtoolbox\jobs\UpdateParcelStatusJob;
 use craft\fields\Email;
 use craft\fields\PlainText;
 use craft\helpers\Template;
+use craft\events\ModelEvent;
 
 class PluginsService extends Component
 {
@@ -775,11 +777,8 @@ class PluginsService extends Component
 
     public function getParcelShopCodeForOrder(Order $order): ?string
     {
-        $field = $this->getParcelShopField();
-        if(is_null($field)){
-            return null;
-        }
-        $value = trim($order->getFieldValue($field->handle));
+        $value = $this->getOrderSavedShipmentProperty($order, null, 'parcelShopCode');
+        $value = trim($value);
         if(empty($value)){
             return null;
         }
@@ -815,20 +814,119 @@ class PluginsService extends Component
         if(is_null($plugin->getParcelShopSelectWidgetTemplate())){
             return null;
         }
-        if(is_null($this->getParcelShopField())){
-            return null;
-        }
         $path = $plugin->getParcelShopSelectWidgetTemplate();
         $context = [
             'order' => $order,
             'plugin' => $plugin,
-            'preselectedCode' => $order->getFieldValue($this->getParcelShopField()->handle),
-            'fieldHandle' => $this->getParcelShopField()->handle,
             'pluginHandle' => $plugin->handle,
         ];
         $html = Craft::$app->view->renderTemplate($path, $context, Craft::$app->view::TEMPLATE_MODE_SITE);
         $html = Template::raw($html);
         return $html;
+    }
+
+    const SHIPMENT_INFO_PREFIX = 'shipment-info';
+
+    public static function sanitizeInput($input) {
+        // Remove NULL bytes
+        $input = str_replace("\0", '', $input);
+        // Strip HTML and PHP tags
+        $input = strip_tags($input);
+        return $input;
+    }
+
+    public function saveShipmentInfoEvent()
+    {
+        // save on order save, if it is incomplete and specific url param is present
+
+        Event::on(
+            Order::class,
+            Order::EVENT_AFTER_SAVE,
+            function (ModelEvent $event) {
+
+                $order = $event->sender;
+
+                // only for incomplete
+                if($order->isCompleted == true){
+                    return;
+                }
+
+                // get input values
+                $sentInfo = Craft::$app->getRequest()->getBodyParam(self::SHIPMENT_INFO_PREFIX);
+                $shippingPluginHandle = $sentInfo['plugin-handle'] ?? null;
+                $infoValues = $sentInfo['values'] ?? null;
+                if(is_null($shippingPluginHandle) || is_null($infoValues)){
+                    return;
+                }
+
+                // if plugin exists and has info details class
+                $plugin = $this->getPluginByHandle($shippingPluginHandle);
+                if(is_null($plugin) || is_null($plugin->getShipmentInfContentsClass())){
+                    return;
+                }
+
+                // get existing element or create new
+                $shippingInfo = ShipmentInfo::find()
+                ->orderId($order->id)
+                ->pluginHandle($shippingPluginHandle)->one();
+
+                if(is_null($shippingInfo)){
+                    $shippingInfo = new ShipmentInfo([
+                        'orderId' => $order->id,
+                        'pluginHandle' => $shippingPluginHandle,
+                    ]);
+                }
+
+                // assign data to info contents obj
+                $contentsObj = $shippingInfo->getContents();
+                foreach ($contentsObj->getJsonProperties() as $property){
+                    $valueKey = $property['value'];
+                    if(!isset($infoValues[$valueKey])){
+                        continue;
+                    }
+                    $contentsObj->{$valueKey} = self::sanitizeInput($infoValues[$valueKey]);
+                }
+                $json = $contentsObj->encodeData();
+
+                // save info element
+                $shippingInfo->propertiesJson = $json;
+                $result = Craft::$app->elements->saveElement($shippingInfo, true, true, true);
+
+            }
+        );
+
+    }
+
+    public function getOrderSavedShipmentInfo($order, $pluginHandle = null)
+    {
+        $shipmentInfo = ShipmentInfo::find()->orderId($order->id);
+        if(!is_null($pluginHandle)){
+            $shipmentInfo = $shipmentInfo->pluginHandle($pluginHandle);
+        }
+        $shipmentInfo = $shipmentInfo->one();
+        if(is_null($shipmentInfo)){
+            return [];
+        }
+        $content2 = $shipmentInfo->getContents();
+        $content = $shipmentInfo->getContents()->outputSavedData();
+        return $content;
+    }
+
+    public function getOrderSavedShipmentProperty($order, $pluginHandle, $property)
+    {
+        $values = $this->getOrderSavedShipmentInfo($order, $pluginHandle);
+        $value = null;
+        foreach ($values as $item){
+            if($item['key'] == $property){
+                $value = $item['value'];
+            }
+        }
+        return $value;
+    }
+
+    public function shipmentInfoParamName($param, $pluginHandle)
+    {
+        return self::SHIPMENT_INFO_PREFIX . '[' . 'values' . ']' . '[' . $param . ']';
     }
 
 }

@@ -11,6 +11,7 @@ class Install extends Migration
 {
     public function safeUp()
     {
+        // shipments
         $this->createTable(
             DbTables::SHIPMENTS,
             [
@@ -36,10 +37,35 @@ class Install extends Migration
             'CASCADE',
             null
         );
+
+        // shipment info
+        $this->createTable(
+            DbTables::SHIPMENT_INFO,
+            [
+                'id' => $this->primaryKey(),
+                'uid' => $this->uid(),
+                'dateCreated' => $this->dateTime()->notNull(),
+                'dateUpdated' => $this->dateTime()->notNull(),
+                'orderId' => $this->integer(),
+                'pluginHandle' => $this->string(),
+                'propertiesJson' => $this->text(),
+            ]
+        );
+        $this->addForeignKey(
+            null,
+            DbTables::SHIPMENT_INFO,
+            'id',
+            '{{%elements}}',
+            'id',
+            'CASCADE',
+            null
+        );
+
     }
 
     public function safeDown()
     {
         $this->dropTableIfExists(DbTables::SHIPMENTS);
+        $this->dropTableIfExists(DbTables::SHIPMENT_INFO);
     }
 }

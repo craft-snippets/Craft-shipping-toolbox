@@ -12,6 +12,7 @@ use craft\services\Utilities;
 use craft\web\twig\variables\CraftVariable;
 use craftsnippets\shippingtoolbox\addressFormatters\CustomAddressFormatter;
 use craftsnippets\shippingtoolbox\elements\Shipment;
+use craftsnippets\shippingtoolbox\elements\ShipmentInfo;
 use craftsnippets\shippingtoolbox\models\Settings;
 use craftsnippets\shippingtoolbox\services\PluginsService;
 use craftsnippets\shippingtoolbox\utilities\ShippingUtility;
@@ -43,6 +44,8 @@ class ShippingToolbox extends Plugin
         $this->plugins->insertShippingForm();
         $this->plugins->registerTableAttributes();
         $this->plugins->registerAddressFormatter();
+        $this->plugins->saveShipmentInfoEvent();
+
     }
 
     protected function createSettingsModel(): ?Model
@@ -76,6 +79,7 @@ class ShippingToolbox extends Plugin
         // register shipment element class
         Event::on(Elements::class, Elements::EVENT_REGISTER_ELEMENT_TYPES, function (RegisterComponentTypesEvent $event) {
             $event->types[] = Shipment::class;
+            $event->types[] = ShipmentInfo::class;
         });
 
         // element actions
