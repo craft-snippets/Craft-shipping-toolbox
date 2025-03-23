@@ -747,34 +747,6 @@ class PluginsService extends Component
         );
     }
 
-    public function getParcelShopField()
-    {
-        $fieldId = ShippingToolbox::getInstance()->getSettings()->parcelShopCodeFieldId;
-        if(!$fieldId){
-            return null;
-        }
-
-        // if field exists
-        $field = Craft::$app->getFields()->getFieldById($fieldId);
-        if(!$field){
-            return null;
-        }
-
-        // if field is assigned to address field layout
-        $fieldsInLayout = Craft::$app->getFields()->getLayoutByType(Order::class)->getCustomFields();
-        $fieldsInLayoutIds = array_column($fieldsInLayout, 'id');
-        if(!in_array($fieldId, $fieldsInLayoutIds)){
-            return null;
-        }
-
-        // if text field
-        if(get_class($field) != PlainText::class){
-            return null;
-        }
-
-        return $field;
-    }
-
     public function getParcelShopCodeForOrder(Order $order): ?string
     {
         $value = $this->getOrderSavedShipmentProperty($order, null, 'parcelShopCode');
