@@ -185,12 +185,12 @@
                             {% endif %}
 
                             {# parcel shops #}
-                            {% if details.plugin.supportsParcelShops() %}
+                            {% if details.plugin.supportsParcelShops() and not details.isParcelShopDisabled() %}
                                 <div class="field shipping__functionality-box">
-                                    <div data-parcel-shop-switch style="">
+                                    <div data-parcel-shop-switch style="" {% if details.isParcelShopForced() %}hidden{% endif %}>
                                     {{ forms.checkboxField({
                                         label: 'Use parcel shop service'|t('shipping-toolbox'),
-                                        checked: details.getParcelShopCodeBeforeCreation(),
+                                        checked: details.getParcelShopCodeBeforeCreation() or details.isParcelShopForced(),
                                     }) }}
                                     </div>
                                     <div data-parcel-shop-content style="margin-top: 0.5rem; display: none;">
@@ -205,7 +205,18 @@
                                 </div>
                             {% endif %}
 
-                            <div class="shipping__parcel-count-wrapper">
+                            <div class="shipping__number-field field">
+                                {% if details.plugin.useInputNumberOfParcels() %}
+                                    {{ forms.textField({
+                                        label: 'Weight'|t('shipping-toolbox'),
+                                        instructions: details.plugin.getWeightInputInstructions(),
+                                        id: 'weight',
+                                        type: 'number',
+                                    }) }}
+                                {% endif %}
+                            </div>
+
+                            <div class="shipping__number-field field">
                             {% if details.plugin.useInputNumberOfParcels() %}
                                 {{ forms.textField({
                                     label: 'Number of parcels'|t('shipping-toolbox'),
@@ -658,7 +669,7 @@
         color: red;
         pointer-events: none;
     }
-    .shipping__parcel-count-wrapper input{
+    .shipping__number-field input{
         max-width: 8.5rem;
     }
 

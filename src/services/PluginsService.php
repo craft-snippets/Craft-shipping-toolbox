@@ -747,9 +747,9 @@ class PluginsService extends Component
         );
     }
 
-    public function getParcelShopCodeForOrder(Order $order): ?string
+    public function getParcelShopCodeForOrder(Order $order, string $pluginHandle): ?string
     {
-        $value = $this->getOrderSavedShipmentProperty($order, null, 'parcelShopCode');
+        $value = $this->getOrderSavedShipmentProperty($order, $pluginHandle, 'parcelShopCode');
         $value = trim($value);
         if(empty($value)){
             return null;
