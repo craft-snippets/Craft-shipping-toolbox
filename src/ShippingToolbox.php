@@ -6,10 +6,12 @@ use Craft;
 use craft\base\Model;
 use craft\base\Plugin;
 use craft\events\RegisterComponentTypesEvent;
+use craft\events\RegisterTemplateRootsEvent;
 use craft\services\Addresses;
 use craft\services\Elements;
 use craft\services\Utilities;
 use craft\web\twig\variables\CraftVariable;
+use craft\web\View;
 use craftsnippets\shippingtoolbox\addressFormatters\CustomAddressFormatter;
 use craftsnippets\shippingtoolbox\elements\Shipment;
 use craftsnippets\shippingtoolbox\elements\ShipmentInfo;
@@ -45,6 +47,14 @@ class ShippingToolbox extends Plugin
         $this->plugins->registerTableAttributes();
         $this->plugins->registerAddressFormatter();
         $this->plugins->saveShipmentInfoEvent();
+
+        Event::on(
+            View::class,
+            View::EVENT_REGISTER_SITE_TEMPLATE_ROOTS,
+            function(RegisterTemplateRootsEvent $event) {
+                $event->roots[$this->handle] = __DIR__ . '/templates';
+            }
+        );
 
     }
 

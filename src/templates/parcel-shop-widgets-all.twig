@@ -1,0 +1,45 @@
+<div class="parcel-shops-widgets">
+
+    <div data-parcel-shop-widgets-all class="parcel-shops-widgets__list">
+        {% for method in order.availableShippingMethodOptions %}
+            <div data-parcel-shop-widgets-single data-shipping-method="{{ method.handle }}" style="display: none;" class="parcel-shops-widgets__single">
+                <div class="parcel-shops-widgets__single-header">
+                    {{ 'Select parcel delivery shop shop'|t }}
+                </div>
+                <div class="parcel-shops-widgets__single-content">
+                    {{ craft.shippingToolbox.renderParcelShopSelectForShippingMethod(order, method.handle) }}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+{% js %}
+function updateShippingWidgets() {
+    // get shipping method selection input
+    const selectedRadio = document.querySelector('input[name="shippingMethodHandle"]:checked');
+    if (!selectedRadio) {
+        return;
+    }
+
+    const shippingValue = selectedRadio.value;
+    const container = document.querySelector('[data-parcel-shop-widgets-all]');
+    const widgetElements = container.querySelectorAll('[data-parcel-shop-widgets-single]');
+
+    widgetElements.forEach(widget => {
+        const widgetShippingMethod = widget.getAttribute('data-shipping-method');
+        if (widgetShippingMethod === shippingValue) {
+            widget.style.display = "";
+        } else {
+            widget.style.display = "none";
+        }
+    });
+}
+
+const shippingRadios = document.querySelectorAll('input[name="shippingMethodHandle"]');
+shippingRadios.forEach(radio => {
+        radio.addEventListener('change', updateShippingWidgets);
+});
+updateShippingWidgets();
+{% endjs %}

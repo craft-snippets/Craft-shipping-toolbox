@@ -805,6 +805,33 @@ class PluginsService extends Component
         return $html;
     }
 
+    public function renderAllParcelShopWidgetsForOrder(Order $order)
+    {
+        $context = [
+            'order' => $order,
+        ];
+        $template = 'shipping-toolbox/parcel-shop-widgets-all.twig';
+        $html = Craft::$app->view->renderTemplate($template, $context, Craft::$app->view::TEMPLATE_MODE_SITE);
+        $html = Template::raw($html);
+        return $html;
+    }
+
+    public function renderParcelShopSelectForShippingMethod(Order $order, $methodHandle)
+    {
+        $selected = null;
+        foreach ($this->getAllShippingPlugins() as $plugin)
+        {
+            if($plugin->isParcelShopAllowedForShippingMethod($methodHandle)){
+                $selected = $plugin;
+                break;
+            }
+        }
+        if(!is_null($selected)){
+            return $this->renderParcelShopSelect($order, $plugin->handle);
+        }
+        return null;
+    }
+
     const SHIPMENT_INFO_PREFIX = 'shipment-info';
 
     public static function sanitizeInput($input) {

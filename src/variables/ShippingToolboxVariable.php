@@ -29,4 +29,15 @@ class ShippingToolboxVariable
     {
         return ShippingToolbox::getInstance()->plugins->renderShipmentInfoWidget($order, $pluginHandle, $param);
     }
+
+    public function renderAllParcelShopWidgetsForOrder($order)
+    {
+        return ShippingToolbox::getInstance()->plugins->renderAllParcelShopWidgetsForOrder($order);
+    }
+
+    public function renderParcelShopSelectForShippingMethod($order, $methodHandle)
+    {
+        return ShippingToolbox::getInstance()->plugins->renderParcelShopSelectForShippingMethod($order, $methodHandle);
+    }
+
 }
