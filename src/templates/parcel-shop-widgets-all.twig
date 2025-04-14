@@ -2,14 +2,14 @@
 
     <div data-parcel-shop-widgets-all class="parcel-shops-widgets__list">
         {% for method in order.availableShippingMethodOptions %}
-            <div data-parcel-shop-widgets-single data-shipping-method="{{ method.handle }}" style="display: none;" class="parcel-shops-widgets__single">
+            <fieldset data-parcel-shop-widgets-single data-shipping-method="{{ method.handle }}" style="display: none;" class="parcel-shops-widgets__single">
                 <div class="parcel-shops-widgets__single-header">
                     {{ 'Select parcel delivery shop shop'|t }}
                 </div>
                 <div class="parcel-shops-widgets__single-content">
                     {{ craft.shippingToolbox.renderParcelShopSelectForShippingMethod(order, method.handle) }}
                 </div>
-            </div>
+            </fieldset>
         {% endfor %}
     </div>
 
@@ -31,8 +31,10 @@ function updateShippingWidgets() {
         const widgetShippingMethod = widget.getAttribute('data-shipping-method');
         if (widgetShippingMethod === shippingValue) {
             widget.style.display = "";
+            widget.disabled = false;
         } else {
             widget.style.display = "none";
+            widget.disabled = true;
         }
     });
 }
