@@ -176,6 +176,14 @@ class PluginsService extends Component
             ];
         }
 
+        // if shipping method set
+        if(is_null($order->shippingMethod)){
+            return [
+                'success' => false,
+                'error' => Craft::t('shipping-toolbox', 'Shipping method is not set for this order.'),
+            ];
+        }
+
         // check if this plugin is allowed for this order shipping method
         if(!$plugin->isAllowedForOrder($order)){
             return [
