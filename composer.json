@@ -1,7 +1,7 @@
 {
   "name": "craftsnippets/craft-shipping-toolbox",
   "type": "craft-plugin",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "license": "proprietary",
   "require": {
     "php": ">=8.2",
