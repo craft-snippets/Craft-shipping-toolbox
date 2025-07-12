@@ -37,16 +37,14 @@ class ShippingToolbox extends Plugin
     {
         parent::init();
 
-        $this->attachEventHandlers();
 
-        Craft::$app->onInit(function() {
-            // ...
-        });
-
-        $this->plugins->insertShippingForm();
-        $this->plugins->registerTableAttributes();
-        $this->plugins->registerAddressFormatter();
-        $this->plugins->saveShipmentInfoEvent();
+        if(Craft::$app->plugins->isPluginEnabled('commerce')){
+            $this->attachEventHandlers();
+            $this->plugins->insertShippingForm();
+            $this->plugins->registerTableAttributes();
+            $this->plugins->registerAddressFormatter();
+            $this->plugins->saveShipmentInfoEvent();
+        }
 
         Event::on(
             View::class,
@@ -65,6 +63,26 @@ class ShippingToolbox extends Plugin
 
     public function getSettingsResponse(): mixed
     {
+
+        $errors = [];
+        if(!Craft::$app->plugins->isPluginEnabled('commerce')){
+            $pluginUrl = \craft\helpers\UrlHelper::url('plugin-store/commerce');
+            $text = Craft::t('shipping-toolbox','plugin is not installed and enabled.');
+            $errors[] = "<a href=\"{$pluginUrl}\"><strong>Craft Commerce</strong></a> {$text}";
+        }
+
+        // commerce missing
+        if(!empty($errors)){
+            $textError = Craft::t('shipping-toolbox', 'plugin error');
+            $title = $this->name . " - {$textError}";
+            $message = join('<br>', $errors);
+            return Craft::$app->controller->renderTemplate('_layouts/cp.twig', [
+                'title' => $title,
+                'content' => $message,
+            ]);
+        }
+
+        /////
 
         $title = Craft::t('shipping-toolbox','Shipping toolbox settings');
 
